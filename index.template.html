@@ -1,0 +1,1650 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>プログラミング言語 系統図</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root {
+    --bg: #f7f5f0;
+    --panel-bg: #ffffff;
+    --text: #1f2430;
+    --text-dim: #5a6072;
+    --border: #d8d4c8;
+    --accent: #2E86AB;
+    --node-dim-opacity: 0.10;
+    --edge-dim-opacity: 0.04;
+    --edge-color: #9a9488;
+    --edge-highlight: #d64550;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #14161c;
+      --panel-bg: #1d2029;
+      --text: #e8e6e0;
+      --text-dim: #9a9fae;
+      --border: #333747;
+      --edge-color: #565b6b;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14161c;
+    --panel-bg: #1d2029;
+    --text: #e8e6e0;
+    --text-dim: #9a9fae;
+    --border: #333747;
+    --edge-color: #565b6b;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    background: var(--bg); color: var(--text);
+    font-family: "Hiragino Sans", "Yu Gothic", "Segoe UI", system-ui, sans-serif;
+    overflow: hidden;
+  }
+  #app { display: flex; height: 100vh; width: 100vw; }
+  #sidebar {
+    width: 280px; flex-shrink: 0; background: var(--panel-bg);
+    border-right: 1px solid var(--border); padding: 14px;
+    overflow-y: auto; font-size: 13px;
+  }
+  #sidebar, #searchResults, #detail, #articleModal {
+    scrollbar-width: thin; scrollbar-color: var(--border) transparent;
+  }
+  #sidebar::-webkit-scrollbar, #searchResults::-webkit-scrollbar,
+  #detail::-webkit-scrollbar, #articleModal::-webkit-scrollbar { width: 8px; }
+  #sidebar::-webkit-scrollbar-track, #searchResults::-webkit-scrollbar-track,
+  #detail::-webkit-scrollbar-track, #articleModal::-webkit-scrollbar-track { background: transparent; margin: 4px 0; }
+  #sidebar::-webkit-scrollbar-thumb, #searchResults::-webkit-scrollbar-thumb,
+  #detail::-webkit-scrollbar-thumb, #articleModal::-webkit-scrollbar-thumb {
+    background: var(--border); border-radius: 999px;
+    border: 2px solid var(--panel-bg); background-clip: padding-box;
+  }
+  #sidebar::-webkit-scrollbar-thumb:hover, #searchResults::-webkit-scrollbar-thumb:hover,
+  #detail::-webkit-scrollbar-thumb:hover, #articleModal::-webkit-scrollbar-thumb:hover {
+    background: var(--text-dim); background-clip: padding-box;
+  }
+  #langToggle { display: flex; gap: 4px; margin-bottom: 10px; }
+  #langToggle .lang-btn {
+    font-size: 11px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--border);
+    background: var(--bg); color: var(--text-dim); cursor: pointer;
+    transition: background .15s ease, color .15s ease, border-color .15s ease;
+  }
+  #langToggle .lang-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+  #langToggle .lang-btn:not(.active):hover { background: rgba(128,128,128,.12); }
+  #sidebar h1 { font-size: 16px; margin: 0 0 4px; }
+  #sidebar .sub { color: var(--text-dim); font-size: 11px; margin-bottom: 14px; }
+  #sidebar h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-dim); margin: 16px 0 6px; }
+  #sidebar .filter-list { display: flex; flex-direction: column; gap: 4px; }
+  #sidebar label {
+    display: flex; align-items: center; gap: 8px;
+    padding: 5px 9px; border-radius: 8px;
+    border: 1px solid var(--border); border-left-width: 3px;
+    background: var(--bg); cursor: pointer; font-size: 12.5px;
+    transition: opacity .15s ease, background .15s ease, border-color .15s ease, transform .1s ease;
+  }
+  #sidebar label:hover { background: rgba(128,128,128,.10); transform: translateX(1px); }
+  #sidebar label:has(input:not(:checked)) { opacity: .4; }
+  #sidebar label input[type="checkbox"] {
+    appearance: none; -webkit-appearance: none; margin: 0;
+    width: 15px; height: 15px; flex-shrink: 0; position: relative;
+    border-radius: 5px; border: 1.5px solid var(--text-dim);
+    background: var(--panel-bg); cursor: pointer;
+    transition: background .15s ease, border-color .15s ease;
+  }
+  #sidebar label input[type="checkbox"]:checked {
+    background: var(--accent); border-color: var(--accent);
+  }
+  #sidebar label input[type="checkbox"]:checked::after {
+    content: ""; position: absolute; left: 4px; top: 0px;
+    width: 4px; height: 8px;
+    border: solid white; border-width: 0 2px 2px 0;
+    transform: rotate(40deg);
+  }
+  #sidebar label input[type="checkbox"]:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 2px;
+  }
+  #sidebar .swatch { width: 9px; height: 9px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+  #sidebar .filter-actions { display: flex; gap: 6px; margin-bottom: 8px; }
+  #sidebar button.mini {
+    font-size: 11px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--border);
+    background: var(--panel-bg); color: var(--text-dim); cursor: pointer;
+    transition: background .15s ease, color .15s ease, border-color .15s ease;
+  }
+  #sidebar button.mini:hover { background: var(--accent); color: white; border-color: var(--accent); }
+  #search { width: 100%; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px;
+    background: var(--bg); color: var(--text); font-size: 13px; margin-bottom: 4px; }
+  #highlightModeSelect { width: 100%; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px;
+    background: var(--bg); color: var(--text); font-size: 13px; margin-bottom: 4px; }
+  #searchResults { max-height: 140px; overflow-y: auto; }
+  #searchResults .result-item { padding: 4px 6px; cursor: pointer; border-radius: 4px; }
+  #searchResults .result-item:hover { background: var(--border); }
+  #searchResults .search-snippet { font-size: 10.5px; color: var(--text-dim); margin-top: 1px; line-height: 1.3; }
+  #main { flex: 1; position: relative; overflow: hidden; }
+  svg#canvas { width: 100%; height: 100%; display: block; cursor: grab; user-select: none; -webkit-user-select: none; }
+  svg#canvas.dragging { cursor: grabbing; }
+  .node { }
+  .node circle { stroke: var(--panel-bg); stroke-width: 1; transition: stroke-width .12s ease; }
+  .node text { font-size: 11px; fill: var(--text); cursor: pointer; }
+  .node:hover circle { stroke: var(--text); stroke-width: 1.5; }
+  .edge { fill: none; stroke: var(--edge-color); stroke-width: 1; pointer-events: none; }
+  /* エッジ種別ごとの線種。太さ/色/不透明度はハイライト状態に応じて render() が都度上書きする。 */
+  .edge-syntax { stroke-dasharray: 6 3; }
+  .edge-implementation { stroke-dasharray: 1.5 3; }
+  .label-bg { fill: var(--bg); opacity: .82; }
+  .band-label { font-size: 10px; fill: var(--text-dim); }
+  line.year-tick { stroke: var(--border); stroke-width: 1; opacity: .5; }
+  text.year-tick { font-size: 10px; fill: var(--text-dim); }
+  #detail {
+    position: absolute; top: 14px; right: 14px; width: 320px; max-height: calc(100vh - 28px);
+    background: var(--panel-bg); border: 1px solid var(--border); border-radius: 10px;
+    padding: 16px; overflow-y: auto; box-shadow: 0 8px 24px rgba(0,0,0,.15);
+    display: none; font-size: 13px; line-height: 1.6;
+  }
+  #detail.open { display: block; }
+  #detail h2 { margin: 0 0 4px; font-size: 18px; }
+  #detail .meta { color: var(--text-dim); font-size: 11px; margin-bottom: 10px; }
+  #detail .field-label { color: var(--text-dim); font-size: 11px; text-transform: uppercase; margin: 10px 0 3px; letter-spacing: .04em; }
+  #detail a.mdlink {
+    display: inline-block; margin-top: 12px; padding: 6px 12px; border-radius: 6px;
+    background: var(--accent); color: white; text-decoration: none; font-size: 12px;
+  }
+  #detail button#closeDetail {
+    position: absolute; top: 10px; right: 10px; border: none; background: transparent;
+    color: var(--text-dim); font-size: 16px; cursor: pointer;
+  }
+  #legend-hint { position: absolute; bottom: 14px; left: 14px; font-size: 11px; color: var(--text-dim);
+    background: var(--panel-bg); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; }
+  #edgeLegend { display: flex; flex-direction: row; align-items: center; gap: 14px; flex-wrap: nowrap; }
+  .edge-legend-row { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .line-sample { display: inline-block; width: 22px; height: 0; border-top-color: var(--edge-color); flex-shrink: 0; }
+  .line-sample.line-lineage { border-top-width: 3px; border-top-style: solid; opacity: .8; }
+  .line-sample.line-influenced { border-top-width: 1px; border-top-style: solid; opacity: .4; }
+  .line-sample.line-syntax { border-top-width: 1px; border-top-style: dashed; opacity: .4; }
+  .line-sample.line-implementation { border-top-width: 1px; border-top-style: dotted; opacity: .4; }
+  #minimap {
+    position: absolute; bottom: 14px; right: 14px;
+    width: 130px; height: 240px; /* portrait, matching the diagram's own tall/narrow proportions */
+    border: 1px solid var(--border); border-radius: 6px;
+    background: var(--panel-bg); box-shadow: 0 2px 10px rgba(0,0,0,.12);
+    overflow: hidden; cursor: pointer;
+  }
+  #minimapCanvas { display: block; width: 100%; height: 100%; }
+  #minimapViewport {
+    position: absolute; left: 0; top: 0; width: 0; height: 0;
+    border: 1.5px solid var(--accent); background: rgba(46,134,171,0.15);
+    pointer-events: none; box-sizing: border-box;
+  }
+  #timelineBar {
+    position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 10px;
+    background: var(--panel-bg); border: 1px solid var(--border); border-radius: 999px;
+    padding: 6px 16px; box-shadow: 0 2px 10px rgba(0,0,0,.12);
+    width: min(560px, calc(100% - 320px));
+  }
+  #timelinePlay {
+    width: 26px; height: 26px; flex: none; border-radius: 50%; border: 1px solid var(--border);
+    background: var(--accent); color: #fff; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+  #timelineSlider { flex: 1; min-width: 0; accent-color: var(--accent); }
+  #timelineYear { flex: none; font-size: 12px; color: var(--text-dim); width: 4.2em; text-align: center; font-variant-numeric: tabular-nums; }
+  #timelineReset {
+    flex: none; font-size: 11px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--border);
+    background: var(--bg); color: var(--text-dim); cursor: pointer; white-space: nowrap;
+  }
+  #timelineReset.hidden { display: none; }
+  #articleModalOverlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45);
+    align-items: center; justify-content: center; z-index: 100;
+  }
+  #articleModalOverlay.open { display: flex; }
+  #articleModal {
+    position: relative; width: min(980px, 94vw); max-height: 92vh; overflow-y: auto;
+    background: var(--panel-bg); border: 1px solid var(--border); border-radius: 12px;
+    padding: 40px 48px; box-shadow: 0 20px 60px rgba(0,0,0,.3); line-height: 1.8; font-size: 15px;
+  }
+  #closeArticleModal {
+    position: absolute; top: 14px; right: 14px; border: none; background: transparent;
+    color: var(--text-dim); font-size: 18px; cursor: pointer; width: 32px; height: 32px; border-radius: 6px;
+  }
+  #closeArticleModal:hover { background: var(--border); }
+  #articleBadges { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 20px; }
+  #articleBadges .badge {
+    font-size: 11px; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--border);
+    color: var(--text-dim); background: var(--bg);
+  }
+  #articleLoading { display: none; color: var(--text-dim); font-size: 13px; }
+  #articleContent h1 { font-size: 24px; margin: 0 0 4px; }
+  #articleContent h2 { font-size: 15px; margin: 26px 0 8px; padding-bottom: 4px; border-bottom: 1px solid var(--border); }
+  #articleContent ul { padding-left: 22px; }
+  #articleContent li { margin: 4px 0; }
+  #articleContent p { margin: 8px 0; }
+  #articleContent a { color: var(--accent); cursor: pointer; }
+  #articleContent > ul:first-of-type { list-style: none; padding-left: 0; color: var(--text-dim); font-size: 13px; }
+  #articleContent pre {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+    padding: 14px 16px; overflow-x: auto; margin: 10px 0 16px;
+  }
+  #articleContent pre code { font-family: "SFMono-Regular", Consolas, Menlo, monospace; font-size: 13px; white-space: pre; }
+  #articleContent img { max-width: 100%; height: auto; border: 1px solid var(--border); border-radius: 4px; display: block; margin: 10px 0; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="sidebar">
+    <div id="langToggle">
+      <button class="lang-btn" data-lang="ja">日本語</button>
+      <button class="lang-btn" data-lang="en">EN</button>
+    </div>
+    <div id="visibleCount" class="sub"></div>
+    <h2 data-i18n="searchHeading">検索</h2>
+    <input id="search" type="text" data-i18n-placeholder="searchPlaceholder" placeholder="言語名・概要で検索...">
+    <div id="searchResults"></div>
+
+    <div id="displaySection" style="display:none;">
+      <h2 data-i18n="semanticZoomHeading">表示</h2>
+      <label class="toggle-row">
+        <input type="checkbox" id="semanticZoomToggle">
+        <span data-i18n="semanticZoomLabel">主要言語のみ先に表示(ズームで拡張)</span>
+      </label>
+    </div>
+
+    <h2 data-i18n="highlightHeading">ハイライト</h2>
+    <select id="highlightModeSelect">
+      <option value="ancestors" data-i18n="highlightModeAncestors">祖先を強調(影響を受けた元)</option>
+      <option value="descendants" data-i18n="highlightModeDescendants">子孫を強調(影響を与えた先)</option>
+      <option value="both" data-i18n="highlightModeBoth">両方を強調</option>
+    </select>
+
+    <h2 data-i18n="familyHeading">系統(family)</h2>
+    <div class="filter-actions">
+      <button class="mini" data-action="all-family" data-i18n="selectAll">全選択</button>
+      <button class="mini" data-action="none-family" data-i18n="selectNone">全解除</button>
+    </div>
+    <div id="familyFilters"></div>
+
+    <h2 data-i18n="paradigmHeading">パラダイム</h2>
+    <div class="filter-actions">
+      <button class="mini" data-action="all-paradigm" data-i18n="selectAll">全選択</button>
+      <button class="mini" data-action="none-paradigm" data-i18n="selectNone">全解除</button>
+    </div>
+    <div id="paradigmFilters"></div>
+
+    <h2 data-i18n="statusHeading">位置づけ</h2>
+    <div class="filter-actions">
+      <button class="mini" data-action="all-status" data-i18n="selectAll">全選択</button>
+      <button class="mini" data-action="none-status" data-i18n="selectNone">全解除</button>
+    </div>
+    <div id="statusFilters"></div>
+
+    <h2 data-i18n="wikipediaHeading">Wikipedia</h2>
+    <div class="filter-actions">
+      <button class="mini" data-action="all-wiki" data-i18n="selectAll">全選択</button>
+      <button class="mini" data-action="none-wiki" data-i18n="selectNone">全解除</button>
+    </div>
+    <div id="wikiFilters"></div>
+  </div>
+  <div id="main">
+    <svg id="canvas">
+      <g id="viewport">
+        <g id="bands"></g>
+        <g id="yearLines"></g>
+        <g id="edges"></g>
+        <g id="nodes"></g>
+      </g>
+      <g id="bandLabelsOverlay"></g>
+      <g id="yearLabelsOverlay"></g>
+    </svg>
+    <div id="detail">
+      <button id="closeDetail">✕</button>
+      <h2 id="d-name"></h2>
+      <div class="meta" id="d-meta"></div>
+      <div id="d-problem-label" class="field-label" data-i18n="problemLabel">解決したかった課題</div>
+      <div id="d-problem"></div>
+      <div class="field-label" data-i18n="summaryLabel">現在の位置づけ</div>
+      <div id="d-summary"></div>
+      <a class="mdlink" id="d-link" href="#" data-i18n="readArticle">詳細記事を読む →</a>
+    </div>
+    <div id="legend-hint">
+      <div id="edgeLegend">
+        <div class="edge-legend-row"><span class="line-sample line-lineage"></span><span data-i18n="edgeLegendLineage">系統・直接的派生</span></div>
+        <div class="edge-legend-row"><span class="line-sample line-influenced"></span><span data-i18n="edgeLegendInfluenced">設計への影響</span></div>
+        <div class="edge-legend-row"><span class="line-sample line-syntax"></span><span data-i18n="edgeLegendSyntax">構文上の影響</span></div>
+        <div class="edge-legend-row"><span class="line-sample line-implementation"></span><span data-i18n="edgeLegendImplementation">実装・処理系上の関係</span></div>
+      </div>
+    </div>
+    <div id="minimap">
+      <canvas id="minimapCanvas" width="130" height="240"></canvas>
+      <div id="minimapViewport"></div>
+    </div>
+    <div id="timelineBar" style="display:none;">
+      <button id="timelinePlay" data-i18n-title="timelinePlayTitle" title="再生">▶</button>
+      <input id="timelineSlider" type="range" step="1">
+      <span id="timelineYear"></span>
+      <button id="timelineReset" data-i18n="timelineReset">全期間表示</button>
+    </div>
+  </div>
+</div>
+<div id="articleModalOverlay">
+  <div id="articleModal">
+    <button id="closeArticleModal">✕</button>
+    <div id="articleBadges"></div>
+    <div id="articleLoading">読み込み中…</div>
+    <div id="articleContent"></div>
+  </div>
+</div>
+
+<script type="application/json" id="lang-data">
+__LANG_DATA_JSON__
+</script>
+
+<script>
+(function(){
+  const DATA = JSON.parse(document.getElementById('lang-data').textContent);
+  const byId = Object.fromEntries(DATA.map(d => [d.id, d]));
+  // influenced_by ({id, type}[]) が唯一の正データ。逆引き (どの言語に影響を与えたか) は
+  // ここで一度だけ導出する。手で両方向を維持すると食い違いが起きるため持たない。
+  const EDGE_TYPES = ['lineage', 'influenced', 'syntax', 'implementation'];
+  const influencedIds = {};
+  DATA.forEach(d => { influencedIds[d.id] = []; });
+  DATA.forEach(d => {
+    (d.influenced_by || []).forEach(({ id: pid }) => {
+      if (influencedIds[pid]) influencedIds[pid].push(d.id);
+    });
+  });
+  // tier 1 = structurally major languages (derived from out-degree, i.e. how many
+  // languages it influenced) — these stay visible at the initial zoomed-out view;
+  // tier 2 fades in as the user zooms in (semantic zoom).
+  const TIER1_MIN_INFLUENCED = 2;
+  DATA.forEach(d => { d.__tier = influencedIds[d.id].length >= TIER1_MIN_INFLUENCED ? 1 : 2; });
+
+  const FAMILY_ORDER = [
+    "origin","basic-family","c-family","algol-pascal","lisp-scheme","ml-functional","smalltalk-oop",
+    "scripting","jvm-dotnet","concurrent-actor","numeric-scientific","logic-declarative",
+    "hardware-description","domain-specific","shell","educational-visual","ai-native","esoteric"
+  ];
+  const FAMILY_LABEL_I18N = {
+    ja: {
+      "origin":"初期言語", "basic-family":"BASIC系統", "c-family":"C言語系統", "algol-pascal":"ALGOL/Pascal系",
+      "lisp-scheme":"Lisp/Scheme系", "ml-functional":"ML/静的型関数型", "smalltalk-oop":"Smalltalk/動的OOP",
+      "scripting":"スクリプト言語", "jvm-dotnet":"JVM/.NET系", "concurrent-actor":"並行/アクター系",
+      "numeric-scientific":"数値/科学計算", "logic-declarative":"論理/宣言型", "hardware-description":"ハードウェア記述",
+      "domain-specific":"ドメイン特化", "shell":"シェル/OS", "educational-visual":"教育用/ビジュアル", "esoteric":"難解言語(esoteric)",
+      "ai-native":"AIネイティブ言語"
+    },
+    en: {
+      "origin":"Early Languages", "basic-family":"BASIC Family", "c-family":"C Family", "algol-pascal":"ALGOL/Pascal Family",
+      "lisp-scheme":"Lisp/Scheme Family", "ml-functional":"ML / Typed Functional", "smalltalk-oop":"Smalltalk / Dynamic OOP",
+      "scripting":"Scripting Languages", "jvm-dotnet":"JVM / .NET Family", "concurrent-actor":"Concurrent / Actor Model",
+      "numeric-scientific":"Numeric / Scientific", "logic-declarative":"Logic / Declarative", "hardware-description":"Hardware Description",
+      "domain-specific":"Domain-Specific", "shell":"Shell / OS", "educational-visual":"Educational / Visual", "esoteric":"Esoteric Languages",
+      "ai-native":"AI-Native Languages"
+    }
+  };
+  let currentLang = localStorage.getItem('langtree-ui-lang') || 'ja';
+  const FAMILY_LABEL = FAMILY_LABEL_I18N[currentLang];
+  const UI_I18N = {
+    ja: {
+      searchHeading: "検索",
+      searchPlaceholder: "言語名・概要で検索...",
+      familyHeading: "系統(family)",
+      paradigmHeading: "パラダイム",
+      statusHeading: "位置づけ",
+      selectAll: "全選択",
+      selectNone: "全解除",
+      problemLabel: "解決したかった課題",
+      summaryLabel: "現在の位置づけ",
+      readArticle: "詳細記事を読む →",
+      articleLoadError: "記事の読み込みに失敗しました。file:// で開いている場合はローカルサーバー経由でアクセスしてください。",
+      statusPrefix: "位置づけ",
+      timelineAll: "全期間",
+      timelineReset: "全期間表示",
+      timelinePlayTitle: "再生",
+      timelinePauseTitle: "停止",
+      semanticZoomHeading: "表示",
+      semanticZoomLabel: "主要言語のみ先に表示(ズームで拡張)",
+      highlightHeading: "ハイライト",
+      highlightModeAncestors: "祖先を強調(影響を受けた元)",
+      highlightModeDescendants: "子孫を強調(影響を与えた先)",
+      highlightModeBoth: "両方を強調",
+      edgeLegendLineage: "系統・直接的派生",
+      edgeLegendInfluenced: "設計への影響",
+      edgeLegendSyntax: "構文上の影響",
+      edgeLegendImplementation: "実装・処理系上の関係",
+      wikipediaHeading: "Wikipedia",
+      wikiCategoryJa: "日本語版あり",
+      wikiCategoryEn: "英語版あり",
+      wikiCategoryNone: "記載なし"
+    },
+    en: {
+      searchHeading: "Search",
+      searchPlaceholder: "Search by name or summary...",
+      familyHeading: "Family",
+      paradigmHeading: "Paradigm",
+      statusHeading: "Status",
+      selectAll: "Select All",
+      selectNone: "Clear All",
+      problemLabel: "Problem It Solved",
+      summaryLabel: "Current Status",
+      readArticle: "Read full article →",
+      articleLoadError: "Failed to load the article. If opened via file://, please access through a local server instead.",
+      statusPrefix: "status",
+      timelineAll: "All time",
+      timelineReset: "Show all",
+      timelinePlayTitle: "Play",
+      timelinePauseTitle: "Pause",
+      semanticZoomHeading: "Display",
+      semanticZoomLabel: "Show major languages first (reveal more when zooming in)",
+      highlightHeading: "Highlight",
+      highlightModeAncestors: "Emphasize ancestors (what it was influenced by)",
+      highlightModeDescendants: "Emphasize descendants (what it influenced)",
+      highlightModeBoth: "Emphasize both",
+      edgeLegendLineage: "Lineage / direct derivation",
+      edgeLegendInfluenced: "Design influence",
+      edgeLegendSyntax: "Syntactic influence",
+      edgeLegendImplementation: "Implementation / runtime relation",
+      wikipediaHeading: "Wikipedia",
+      wikiCategoryJa: "Japanese page",
+      wikiCategoryEn: "English page",
+      wikiCategoryNone: "No page"
+    }
+  };
+  const FAMILY_COLOR = {
+    "origin":"#8B5E3C","basic-family":"#B8860B","c-family":"#E4572E","algol-pascal":"#17BEBB","lisp-scheme":"#7A28CB",
+    "ml-functional":"#2E86AB","smalltalk-oop":"#F49D37","scripting":"#4CAF50","jvm-dotnet":"#D64550",
+    "concurrent-actor":"#3E8914","numeric-scientific":"#3A506B","logic-declarative":"#9C6644",
+    "hardware-description":"#6D6875","domain-specific":"#B08968","shell":"#495867",
+    "educational-visual":"#E0B400","esoteric":"#C71585","ai-native":"#3F51B5"
+  };
+  const PARADIGMS = [...new Set(DATA.flatMap(d => d.paradigms))].sort();
+  const STATUSES = [...new Set(DATA.map(d => d.status))].sort();
+  const PARADIGM_LABEL_JA = {
+    array:"配列指向", concatenative:"連結型", concurrent:"並行", dataflow:"データフロー",
+    declarative:"宣言型", educational:"教育用", esoteric:"難解", "event-driven":"イベント駆動",
+    functional:"関数型", generic:"ジェネリック", logic:"論理型", macro:"マクロ",
+    "object-oriented":"オブジェクト指向", "pattern-matching":"パターンマッチング", procedural:"手続き型",
+    "protocol-oriented":"プロトコル指向", query:"クエリ", "rule-based":"ルールベース", scripting:"スクリプト",
+    "stack-based":"スタックベース", symbolic:"記号処理", systems:"システム記述", visual:"ビジュアル"
+  };
+  const STATUS_LABEL_JA = {
+    active:"現役", educational:"教育用", esoteric:"難解言語", historical:"歴史的", legacy:"レガシー", niche:"ニッチ"
+  };
+  function paradigmLabel(p) { return currentLang === 'ja' && PARADIGM_LABEL_JA[p] ? `${p}(${PARADIGM_LABEL_JA[p]})` : p; }
+  function statusLabel(s) { return currentLang === 'ja' && STATUS_LABEL_JA[s] ? `${s}(${STATUS_LABEL_JA[s]})` : s; }
+  const WIKI_CATEGORY_I18N_KEY = { ja: 'wikiCategoryJa', en: 'wikiCategoryEn', none: 'wikiCategoryNone' };
+  function wikiCategoryLabel(c) { return UI_I18N[currentLang][WIKI_CATEGORY_I18N_KEY[c]]; }
+
+  // declared here (rather than down by the filter UI) because the layout pass
+  // below already needs them to decide which family bands have anything visible
+  const activeFamilies = new Set(FAMILY_ORDER);
+  const activeParadigms = new Set(PARADIGMS);
+  const activeStatuses = new Set(STATUSES);
+  // Wikipedia coverage as a proper category filter, same shape as family/
+  // paradigm/status: every language falls into at least one of these three
+  // (ja and en can both apply to the same language; a language with neither
+  // page falls only into "none"), so checking all three is full coverage.
+  const WIKI_CATEGORIES = ['ja', 'en', 'none'];
+  function wikiCategoriesOf(d) {
+    const cats = [];
+    if (d.wikipedia_ja) cats.push('ja');
+    if (d.wikipedia_en) cats.push('en');
+    if (!d.wikipedia_ja && !d.wikipedia_en) cats.push('none');
+    return cats;
+  }
+  const activeWikiCategories = new Set(WIKI_CATEGORIES);
+  function wikiVisible(d) {
+    return wikiCategoriesOf(d).some(c => activeWikiCategories.has(c));
+  }
+
+  // ---------- layout ----------
+  const margin = { top: 40, right: 40, bottom: 20, left: 40 };
+  const yearMin = Math.min(1940, Math.min(...DATA.map(d => d.year)) - 2);
+  const yearMax = Math.max(...DATA.map(d => d.year)) + 2;
+  const PX_PER_YEAR = 14;
+  const innerWidth = (yearMax - yearMin) * PX_PER_YEAR;
+  function xScale(year) { return margin.left + (year - yearMin) * PX_PER_YEAR; }
+
+  const SUBLANE_H = 22;
+  const BAND_GAP = 10;
+  const MIN_GAP_YEARS = 3.2; // 同一サブレーン内での最小間隔(年換算)
+
+  const CHAR_WIDTH_PX = 7.5; // rough average glyph width (mixed EN/JA), used to keep long labels from overlapping the next node
+  const LABEL_PADDING_PX = 14; // circle radius + offset + right margin
+
+  // Sub-lane assignment (which row within a family's band a node sits in) is
+  // recomputed from scratch, for only the currently-visible nodes of each
+  // family, every time computeBandLayout() runs. This is deliberate: filtered-
+  // out nodes aren't just dimmed in place, they're hidden and their sub-lane is
+  // freed up, so the remaining visible nodes in that family repack together
+  // instead of leaving gaps where the hidden ones used to sit. A family with
+  // nothing currently visible collapses out of the vertical stack entirely
+  // (bandInfo[fam] = null) rather than leaving a dead gap.
+  let bandInfo = {};
+  let totalHeight = 0;
+  function visibleNodesFor(fam) {
+    if (!activeFamilies.has(fam)) return [];
+    return DATA.filter(d => d.family === fam &&
+      d.paradigms.some(p => activeParadigms.has(p)) &&
+      activeStatuses.has(d.status) &&
+      wikiVisible(d)
+    ).sort((a,b) => a.year - b.year);
+  }
+  function computeBandLayout() {
+    bandInfo = {};
+    let cursorY = margin.top;
+    for (const fam of FAMILY_ORDER) {
+      const nodesInFam = visibleNodesFor(fam);
+      if (!nodesInFam.length) { bandInfo[fam] = null; continue; }
+      const lanes = []; // per sublane: { year, neededGapYears } of the last node placed there
+      nodesInFam.forEach(d => {
+        const labelWidthPx = LABEL_PADDING_PX + d.name.length * CHAR_WIDTH_PX;
+        const neededGapYears = Math.max(MIN_GAP_YEARS, labelWidthPx / PX_PER_YEAR);
+        let placed = -1;
+        for (let i = 0; i < lanes.length; i++) {
+          if (d.year - lanes[i].year >= lanes[i].neededGapYears) { placed = i; break; }
+        }
+        if (placed === -1) { lanes.push(null); placed = lanes.length - 1; }
+        lanes[placed] = { year: d.year, neededGapYears };
+        d.__subLane = placed;
+      });
+      const subLaneCount = Math.max(1, lanes.length);
+      bandInfo[fam] = { top: cursorY, subLanes: subLaneCount, height: subLaneCount * SUBLANE_H };
+      cursorY += subLaneCount * SUBLANE_H + BAND_GAP;
+    }
+    totalHeight = cursorY + margin.bottom;
+  }
+  computeBandLayout();
+
+  DATA.forEach(d => {
+    d.__x = xScale(d.year);
+    const b = bandInfo[d.family];
+    d.__y = b ? (b.top + d.__subLane * SUBLANE_H + SUBLANE_H / 2) : 0;
+  });
+
+  // ---------- svg helpers ----------
+  const svgNS = "http://www.w3.org/2000/svg";
+  function el(tag, attrs) {
+    const e = document.createElementNS(svgNS, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    return e;
+  }
+
+  const canvas = document.getElementById('canvas');
+  const viewport = document.getElementById('viewport');
+  const gBands = document.getElementById('bands');
+  const gYearLines = document.getElementById('yearLines');
+  const gBandLabelsOverlay = document.getElementById('bandLabelsOverlay');
+  const gYearLabelsOverlay = document.getElementById('yearLabelsOverlay');
+  const gEdges = document.getElementById('edges');
+  const gNodes = document.getElementById('nodes');
+
+  const totalWidth = margin.left + innerWidth + margin.right;
+  function updateViewBox() {
+    const rect = canvas.getBoundingClientRect();
+    canvas.setAttribute('viewBox', `0 0 ${rect.width || 1000} ${rect.height || 700}`);
+  }
+  updateViewBox();
+
+  // family bands background (scrolls/zooms with content) + labels (fixed to left edge, follow vertically)
+  // rect/label/bg for every family are always created (indices line up with
+  // FAMILY_ORDER) even though a family with nothing currently visible starts
+  // (and can later become) collapsed to height 0 / display:none by relayout().
+  const bandRectElems = [];
+  const bandLabelElems = [];
+  const bandLabelBgElems = [];
+  FAMILY_ORDER.forEach((fam, i) => {
+    const rect = el('rect', {
+      x: 0, width: totalWidth,
+      fill: i % 2 === 0 ? 'rgba(128,128,128,0.05)' : 'rgba(128,128,128,0.02)'
+    });
+    gBands.appendChild(rect);
+    const bg = el('rect', { class: 'label-bg' });
+    gBandLabelsOverlay.appendChild(bg);
+    const label = el('text', { class: 'band-label', x: 6 });
+    label.textContent = FAMILY_LABEL[fam];
+    label.dataset.family = fam;
+    gBandLabelsOverlay.appendChild(label);
+    bandRectElems.push(rect);
+    bandLabelElems.push(label);
+    bandLabelBgElems.push(bg);
+  });
+
+  // year axis: vertical lines scroll/zoom with content, labels stay fixed to top edge
+  const yearTickLineElems = [];
+  const yearLabelElems = [];
+  const yearLabelBgElems = [];
+  const tickStart = Math.ceil(yearMin / 10) * 10;
+  for (let y = tickStart; y <= yearMax; y += 10) {
+    const x = xScale(y);
+    const line = el('line', { class: 'year-tick', x1: x, y1: margin.top - 24, x2: x, y2: totalHeight - margin.bottom });
+    gYearLines.appendChild(line);
+    yearTickLineElems.push(line);
+    const bg = el('rect', { class: 'label-bg' });
+    gYearLabelsOverlay.appendChild(bg);
+    const t = el('text', { class: 'year-tick', x: x + 3, y: 14 });
+    t.textContent = y;
+    t.dataset.origX = x;
+    gYearLabelsOverlay.appendChild(t);
+    yearLabelBgElems.push(bg);
+    yearLabelElems.push(t);
+  }
+
+  // Sets each band rect's y/height and each band label's origY from the current
+  // bandInfo, hiding the rect/label/bg entirely for a collapsed (null) band.
+  // Called once here for the initial layout and again by relayout() after any
+  // family/paradigm/status filter change recomputes bandInfo.
+  function applyBandInfoToDom() {
+    FAMILY_ORDER.forEach((fam, i) => {
+      const b = bandInfo[fam];
+      const rect = bandRectElems[i], label = bandLabelElems[i], bg = bandLabelBgElems[i];
+      if (!b) {
+        rect.style.display = 'none';
+        label.style.display = 'none';
+        bg.style.display = 'none';
+        return;
+      }
+      rect.style.display = '';
+      label.style.display = '';
+      bg.style.display = '';
+      rect.setAttribute('y', b.top - SUBLANE_H/2);
+      rect.setAttribute('height', b.height);
+      const origY = b.top - SUBLANE_H/2 + 12;
+      label.dataset.origY = origY;
+      label.setAttribute('y', origY); // raw (untransformed) position; applyTransform()
+                                       // rescales it against tx/ty/scale every frame
+    });
+  }
+  applyBandInfoToDom();
+
+  // size label backgrounds from actual text bounding boxes (once, after insertion into DOM)
+  function fitLabelBg(textEl, bgEl) {
+    const bbox = textEl.getBBox();
+    bgEl.setAttribute('x', bbox.x - 3);
+    bgEl.setAttribute('y', bbox.y - 2);
+    bgEl.setAttribute('width', bbox.width + 6);
+    bgEl.setAttribute('height', bbox.height + 4);
+    bgEl.dataset.offsetX = (bbox.x - 3) - parseFloat(textEl.getAttribute('x'));
+    bgEl.dataset.offsetY = (bbox.y - 2) - parseFloat(textEl.getAttribute('y'));
+  }
+  bandLabelElems.forEach((label, i) => fitLabelBg(label, bandLabelBgElems[i]));
+  yearLabelElems.forEach((t, i) => fitLabelBg(t, yearLabelBgElems[i]));
+
+  // edges
+  // 系統(lineage): 強い系譜・直接的派生 → 太い実線
+  // influenced:    言語設計への影響       → 細い実線 (既定)
+  // syntax:        構文上の影響           → 破線
+  // implementation: 実装・処理系上の関係  → 点線
+  // lineageとinfluencedは共に実線なので、太さと不透明度の両方に差をつけて見分けやすくする。
+  const EDGE_BASE_WIDTH = { lineage: 3, influenced: 1, syntax: 1, implementation: 1 };
+  const EDGE_BASE_OPACITY = { lineage: 0.65, influenced: 0.3, syntax: 0.3, implementation: 0.3 };
+  const edgeElems = [];
+  DATA.forEach(d => {
+    (d.influenced_by || []).forEach(({ id: pid, type }) => {
+      const p = byId[pid];
+      if (!p) return;
+      const t = EDGE_TYPES.includes(type) ? type : 'influenced';
+      const path = el('path', {
+        class: `edge edge-${t}`,
+        d: edgePath(p.__x, p.__y, d.__x, d.__y)
+      });
+      path.dataset.from = pid;
+      path.dataset.to = d.id;
+      path.dataset.type = t;
+      path.dataset.baseWidth = EDGE_BASE_WIDTH[t];
+      path.dataset.baseOpacity = EDGE_BASE_OPACITY[t];
+      gEdges.appendChild(path);
+      edgeElems.push(path);
+    });
+  });
+  function edgePath(x1, y1, x2, y2) {
+    const mx = (x1 + x2) / 2;
+    if (Math.abs(y1 - y2) < 0.5) {
+      // 親子が同じサブレーン(横一列)にいると、その間の年代に無関係な別言語が挟まっている
+      // 場合、直線がそのノードの真上を通って「繋がっているように」誤読される。
+      // レーンの中心から上へわずかに逃がした弧にすることで、無関係なノードの真上を
+      // 通らないようにする(半レーン高=SUBLANE_H/2=11pxを超えないよう9pxに抑え、隣接
+      // レーンへはみ出さないようにしている)。
+      const cy = y1 - 18; // 二次ベジェの頂点でのY方向ずれは (制御点オフセット)/2 = 9px
+      return `M ${x1} ${y1} Q ${mx} ${cy}, ${x2} ${y2}`;
+    }
+    return `M ${x1} ${y1} C ${mx} ${y1}, ${mx} ${y2}, ${x2} ${y2}`;
+  }
+
+  // nodes
+  function displayName(d) { return (currentLang === 'en' && d.name_en) ? d.name_en : d.name; }
+  const nodeElems = {};
+  const nodeCircleElems = {};
+  const nodeLabelElems = {};
+  let hoverLeaveTimer = null, hoverLeavePending = null;
+  DATA.forEach(d => {
+    const g = el('g', { class: 'node', 'data-id': d.id, transform: `translate(${d.__x},${d.__y})` });
+    const c = el('circle', { r: 5, fill: FAMILY_COLOR[d.family] });
+    const bg = el('rect', { class: 'label-bg' });
+    const t = el('text', { x: 8, y: 3 });
+    t.textContent = displayName(d);
+    g.appendChild(bg); g.appendChild(t); g.appendChild(c);
+    gNodes.appendChild(g);
+    fitLabelBg(t, bg);
+    g.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      if (dragMoved) return; // a pan just ended here; don't also select the node
+      selectNode(d.id);
+    });
+    g.addEventListener('mouseenter', () => {
+      if (hoverLeaveTimer) { clearTimeout(hoverLeaveTimer); hoverLeaveTimer = null; }
+      hoveredId = d.id;
+      scheduleRender();
+    });
+    g.addEventListener('mouseleave', () => {
+      if (hoverLeaveTimer) clearTimeout(hoverLeaveTimer);
+      // small grace period: moving the cursor across the gap between two adjacent
+      // nodes would otherwise flash a "nothing highlighted" frame between them
+      hoverLeavePending = d.id;
+      hoverLeaveTimer = setTimeout(() => {
+        hoverLeaveTimer = null;
+        if (hoveredId === hoverLeavePending) { hoveredId = null; scheduleRender(); }
+      }, 60);
+    });
+    nodeElems[d.id] = g;
+    nodeCircleElems[d.id] = c;
+    nodeLabelElems[d.id] = { text: t, bg };
+  });
+
+  // ---------- zoom / pan ----------
+  let tx = 0, ty = 0, scale = 1;
+  function clamp(v, min, max) { return Math.min(max, Math.max(min, v)); }
+  // While actively dragging, clampPan() runs every animation frame. Querying
+  // getBoundingClientRect() that often can force the browser to flush any
+  // pending layout/style recalculation synchronously before it can answer —
+  // with 350+ nodes in the SVG that shows up as the pan visibly lagging behind
+  // the cursor. The canvas element's own box doesn't move during a drag, so
+  // cache it for the duration of one and skip the live query entirely.
+  let dragRect = null;
+  function clampPan() {
+    const rect = dragRect || canvas.getBoundingClientRect();
+    const availW = rect.width || 1000, availH = rect.height || 700;
+    const marginPx = 24; // allow content edge to sit slightly inside the viewport, but no further
+    const rightMarginPx = 360; // extra room so a node near the right/bottom edge can still be centered clear of the detail panel
+    const contentW = totalWidth * scale;
+    const contentH = totalHeight * scale;
+    // The two bounds are "content flush against the near edge" and "content flush
+    // against the far edge". Which one is numerically smaller flips depending on
+    // whether content is wider or narrower than the viewport, so normalize with
+    // min/max rather than assuming an order — an unnormalized bound pair is what
+    // froze dragging entirely the last time this was "fixed".
+    const leftFlushTx = marginPx;
+    // when content is narrower than the viewport, dragging right past flush-left
+    // would open a gap between the band rects (which scroll with content) and the
+    // fixed family-label column, so that direction is still capped at marginPx.
+    // But the opposite direction is safe — the band rects stay just as wide either
+    // way, so sliding left only runs out of room once the rects' trailing edge is
+    // about to pass the label column, i.e. after exactly contentW of travel. Pinning
+    // both bounds to marginPx (as before) collapsed that entire safe range to zero
+    // and froze dragging outright whenever content was narrower than the viewport.
+    const rightFlushTx = contentW < availW ? marginPx - contentW : availW - contentW - rightMarginPx;
+    tx = clamp(tx, Math.min(leftFlushTx, rightFlushTx), Math.max(leftFlushTx, rightFlushTx));
+    const topFlushTy = marginPx;
+    const bottomFlushTy = availH - contentH - rightMarginPx;
+    ty = clamp(ty, Math.min(topFlushTy, bottomFlushTy), Math.max(topFlushTy, bottomFlushTy));
+  }
+  function applyTransform() {
+    clampPan();
+    viewport.setAttribute('transform', `translate(${tx},${ty}) scale(${scale})`);
+    bandLabelElems.forEach((label, i) => {
+      const y = ty + parseFloat(label.dataset.origY) * scale;
+      label.setAttribute('y', y);
+      const bg = bandLabelBgElems[i];
+      if (bg.dataset.offsetY !== undefined) bg.setAttribute('y', y + parseFloat(bg.dataset.offsetY));
+    });
+    yearLabelElems.forEach((t, i) => {
+      const x = tx + parseFloat(t.dataset.origX) * scale + 3;
+      t.setAttribute('x', x);
+      const bg = yearLabelBgElems[i];
+      if (bg.dataset.offsetX !== undefined) bg.setAttribute('x', x + parseFloat(bg.dataset.offsetX));
+    });
+    updateMinimapViewport();
+  }
+  let panAnimFrame = null;
+  function animateTransform(targetTx, targetTy, targetScale, duration = 500) {
+    if (panAnimFrame) cancelAnimationFrame(panAnimFrame);
+    const startTx = tx, startTy = ty, startScale = scale;
+    const startTime = performance.now();
+    function step(now) {
+      const t = Math.min(1, (now - startTime) / duration);
+      const eased = 1 - Math.pow(1 - t, 3); // ease-out cubic
+      tx = startTx + (targetTx - startTx) * eased;
+      ty = startTy + (targetTy - startTy) * eased;
+      scale = startScale + (targetScale - startScale) * eased;
+      applyTransform();
+      panAnimFrame = (t < 1) ? requestAnimationFrame(step) : null;
+    }
+    panAnimFrame = requestAnimationFrame(step);
+  }
+  // used by search-jump and the ?focus= deep link. Panning alone (keeping the
+  // current scale) used to be enough, but once clampPan started pinning tx/ty
+  // flush whenever content is narrower than the viewport (so the graph can't be
+  // dragged away from the band-label column at the default zoom), a pan-only
+  // jump at that zoom level would get silently overridden back to the pinned
+  // position — the jump looked like it did nothing. Zooming in as part of the
+  // jump guarantees content becomes wider than the viewport, so the pan isn't
+  // fighting that clamp.
+  function focusOnNode(id) {
+    const d = byId[id];
+    if (!d) return;
+    const rect = canvas.getBoundingClientRect();
+    const targetScale = Math.max(scale, minScale * 3);
+    const targetTx = rect.width / 2 - d.__x * targetScale;
+    const targetTy = rect.height / 2 - d.__y * targetScale;
+    animateTransform(targetTx, targetTy, targetScale);
+  }
+  // fit initial view
+  let minScale = 0.05;
+  function fitInitial(){
+    const rect = canvas.getBoundingClientRect();
+    const availW = rect.width || 1000, availH = rect.height || 700;
+    scale = (availH / totalHeight) * 0.98;
+    if (!isFinite(scale) || scale <= 0) scale = 0.5;
+    minScale = scale; // never allow zooming out past the initial fit-to-height view
+    tx = 10;
+    ty = (availH - totalHeight * scale) / 2;
+    applyTransform();
+  }
+
+  // ---------- minimap (bottom-right overview + click/drag-to-jump) ----------
+  // Declared before fitInitial() runs: applyTransform() (called by fitInitial())
+  // calls updateMinimapViewport() below, so these must already exist by then.
+  const minimapEl = document.getElementById('minimap');
+  const minimapCanvas = document.getElementById('minimapCanvas');
+  const minimapCtx = minimapCanvas.getContext('2d');
+  const minimapViewportEl = document.getElementById('minimapViewport');
+  const MINIMAP_W = minimapCanvas.width, MINIMAP_H = minimapCanvas.height;
+  const MINIMAP_PAD = 4;
+  // content-space -> minimap-canvas-space mapping, recomputed by drawMinimap()
+  // whenever totalHeight changes (family bands packing in/out) so the click/drag
+  // handlers below always agree with what's actually drawn.
+  // X and Y are scaled independently (not a single uniform factor) so the
+  // content's actual left/right/top/bottom edges always land exactly on the
+  // minimap's own edges — faithful to the true extent on both axes, at the
+  // cost of not preserving the main view's aspect ratio.
+  let minimapScaleX = 1, minimapScaleY = 1, minimapOffX = 0, minimapOffY = 0;
+  function drawMinimap() {
+    const availW = MINIMAP_W - MINIMAP_PAD * 2, availH = MINIMAP_H - MINIMAP_PAD * 2;
+    minimapScaleX = availW / totalWidth;
+    minimapScaleY = availH / totalHeight;
+    minimapOffX = MINIMAP_PAD;
+    minimapOffY = MINIMAP_PAD;
+    minimapCtx.clearRect(0, 0, MINIMAP_W, MINIMAP_H);
+    DATA.forEach(d => {
+      if (!passesFilter(d, null)) return; // mirror what's actually shown right now
+      minimapCtx.fillStyle = FAMILY_COLOR[d.family] || '#888';
+      minimapCtx.beginPath();
+      minimapCtx.arc(minimapOffX + d.__x * minimapScaleX, minimapOffY + d.__y * minimapScaleY, 1.3, 0, Math.PI * 2);
+      minimapCtx.fill();
+    });
+  }
+  function updateMinimapViewport() {
+    const rect = canvas.getBoundingClientRect();
+    const availW = rect.width || 1000, availH = rect.height || 700;
+    const cx0 = -tx / scale, cy0 = -ty / scale;
+    const cx1 = (availW - tx) / scale, cy1 = (availH - ty) / scale;
+    minimapViewportEl.style.left = (minimapOffX + cx0 * minimapScaleX) + 'px';
+    minimapViewportEl.style.top = (minimapOffY + cy0 * minimapScaleY) + 'px';
+    minimapViewportEl.style.width = Math.max(2, (cx1 - cx0) * minimapScaleX) + 'px';
+    minimapViewportEl.style.height = Math.max(2, (cy1 - cy0) * minimapScaleY) + 'px';
+  }
+  function panToMinimapPoint(clientX, clientY) {
+    const rect = minimapEl.getBoundingClientRect();
+    const contentX = (clientX - rect.left - minimapOffX) / minimapScaleX;
+    const contentY = (clientY - rect.top - minimapOffY) / minimapScaleY;
+    const canvasRect = canvas.getBoundingClientRect();
+    tx = canvasRect.width / 2 - contentX * scale;
+    ty = canvasRect.height / 2 - contentY * scale;
+    applyTransform();
+  }
+  let minimapDragging = false;
+  minimapEl.addEventListener('mousedown', (e) => {
+    e.stopPropagation(); // don't let this fall through to the main canvas's own pan handling
+    minimapDragging = true;
+    panToMinimapPoint(e.clientX, e.clientY);
+  });
+  window.addEventListener('mousemove', (e) => {
+    if (!minimapDragging) return;
+    panToMinimapPoint(e.clientX, e.clientY);
+  });
+  window.addEventListener('mouseup', () => { minimapDragging = false; });
+
+  fitInitial();
+
+  // Re-runs the vertical band layout after a family/paradigm/status filter
+  // changes, so a family with nothing currently visible collapses out of the
+  // stack (bands packed together) instead of leaving a dead gap where it used
+  // to sit. Deliberately leaves the camera (scale/tx/ty) untouched — only the
+  // diagram's own geometry is repacked. Band rects/labels/year-ticks snap
+  // straight to their new (verified-correct, via applyBandInfoToDom()) position
+  // — they're cheap, low-detail chrome and not worth animating — but every node
+  // and edge morphs smoothly from its old position to its new one, which is
+  // what actually reads as the diagram "packing itself" to the eye.
+  let relayoutAnimFrame = null;
+  function relayout() {
+    // snapshot "before" positions before computeBandLayout() overwrites
+    // bandInfo/totalHeight with the "after" (target) layout
+    const prevY = {};
+    DATA.forEach(d => { prevY[d.id] = d.__y; });
+
+    computeBandLayout();       // bandInfo/totalHeight now hold the target layout
+    applyBandInfoToDom();      // band rects/labels snap straight to that target
+    yearTickLineElems.forEach(line => line.setAttribute('y2', totalHeight - margin.bottom));
+    applyTransform();          // re-derive band/year label screen y from tx/ty/scale
+                                // (unchanged) plus the origY values just updated
+    drawMinimap();              // reflect the newly-packed layout / filter set
+
+    const targetY = {};
+    DATA.forEach(d => {
+      const b = bandInfo[d.family];
+      // a node whose family has nothing visible right now has no meaningful
+      // target — it's about to be hidden by render()'s opacity pass anyway, so
+      // just freeze it in place rather than sending it somewhere arbitrary
+      targetY[d.id] = b ? (b.top + d.__subLane * SUBLANE_H + SUBLANE_H / 2) : prevY[d.id];
+    });
+
+    if (relayoutAnimFrame) cancelAnimationFrame(relayoutAnimFrame);
+    const duration = 500;
+    const startTime = performance.now();
+    function step(now) {
+      const t = Math.min(1, (now - startTime) / duration);
+      const eased = 1 - Math.pow(1 - t, 3); // ease-out cubic, matching animateTransform()
+
+      DATA.forEach(d => {
+        const py = prevY[d.id], ty_ = targetY[d.id];
+        d.__y = py + (ty_ - py) * eased;
+        const g = nodeElems[d.id];
+        if (g) g.setAttribute('transform', `translate(${d.__x},${d.__y})`);
+      });
+
+      edgeElems.forEach(path => {
+        const p = byId[path.dataset.from], dd = byId[path.dataset.to];
+        if (!p || !dd) return;
+        path.setAttribute('d', edgePath(p.__x, p.__y, dd.__x, dd.__y));
+      });
+
+      if (t < 1) {
+        relayoutAnimFrame = requestAnimationFrame(step);
+      } else {
+        relayoutAnimFrame = null;
+        // snap every node exactly to its target (guards against any drift from
+        // rounding across animation frames)
+        DATA.forEach(d => {
+          const b = bandInfo[d.family];
+          if (!b) return;
+          d.__y = targetY[d.id];
+          const g = nodeElems[d.id];
+          if (g) g.setAttribute('transform', `translate(${d.__x},${d.__y})`);
+        });
+        edgeElems.forEach(path => {
+          const p = byId[path.dataset.from], dd = byId[path.dataset.to];
+          if (!p || !dd) return;
+          path.setAttribute('d', edgePath(p.__x, p.__y, dd.__x, dd.__y));
+        });
+      }
+    }
+    relayoutAnimFrame = requestAnimationFrame(step);
+  }
+
+  let isPanning = false, panStart = null;
+  // Tracks whether the pointer actually moved past a small threshold between
+  // mousedown and mouseup. mouseup (which clears isPanning) always fires before
+  // the resulting click event, so canvas's click handler can't tell a drag from
+  // a plain click by checking isPanning alone — it would clear the highlight
+  // after every pan. dragMoved is the real signal: only a click that wasn't
+  // preceded by a real drag should clear the selection.
+  let dragMoved = false, downX = 0, downY = 0;
+  const DRAG_THRESHOLD_PX = 3;
+  canvas.addEventListener('mousedown', (e) => {
+    // starting the drag on top of a node (or its label) still pans the canvas —
+    // only a real click (no movement) selects the node; see dragMoved below.
+    if (e.target === canvas || e.target.closest('#bands') || e.target.closest('#yearLines') || e.target.closest('#bandLabelsOverlay') || e.target.closest('#yearLabelsOverlay') || e.target.closest('#nodes')) {
+      if (panAnimFrame) { cancelAnimationFrame(panAnimFrame); panAnimFrame = null; } // don't fight an in-flight focus/search-jump animation
+      isPanning = true; panStart = { x: e.clientX - tx, y: e.clientY - ty };
+      downX = e.clientX; downY = e.clientY; dragMoved = false;
+      dragRect = canvas.getBoundingClientRect();
+      canvas.classList.add('dragging');
+    }
+  });
+  let panRaf = null, pendingMove = null;
+  window.addEventListener('mousemove', (e) => {
+    if (!isPanning) return;
+    if (!dragMoved && (Math.abs(e.clientX - downX) > DRAG_THRESHOLD_PX || Math.abs(e.clientY - downY) > DRAG_THRESHOLD_PX)) {
+      dragMoved = true;
+      // Only suspend per-node hover handling once a real drag is confirmed, not on
+      // every mousedown — panning can now start from on top of a node (so a plain
+      // click there still selects it), and disabling pointer-events immediately
+      // would make mouseup/click hit-test the canvas behind the node instead of
+      // the node itself, silently breaking node selection for non-drag clicks.
+      gNodes.style.pointerEvents = 'none';
+    }
+    pendingMove = e;
+    if (panRaf) return;
+    panRaf = requestAnimationFrame(() => {
+      panRaf = null;
+      if (!isPanning || !pendingMove) return;
+      tx = pendingMove.clientX - panStart.x; ty = pendingMove.clientY - panStart.y;
+      applyTransform();
+    });
+  });
+  window.addEventListener('mouseup', () => {
+    if (!isPanning) return;
+    isPanning = false;
+    dragRect = null;
+    canvas.classList.remove('dragging');
+    gNodes.style.pointerEvents = '';
+  });
+
+  let wheelRaf = null, pendingWheel = null;
+  canvas.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const rect = canvas.getBoundingClientRect();
+    pendingWheel = { mx: e.clientX - rect.left, my: e.clientY - rect.top, deltaY: e.deltaY };
+    if (wheelRaf) return;
+    wheelRaf = requestAnimationFrame(() => {
+      wheelRaf = null;
+      if (!pendingWheel) return;
+      const { mx, my, deltaY } = pendingWheel;
+      const factor = deltaY < 0 ? 1.12 : 1/1.12;
+      const newScale = Math.min(8, Math.max(minScale, scale * factor));
+      tx = mx - (mx - tx) * (newScale / scale);
+      ty = my - (my - ty) * (newScale / scale);
+      scale = newScale;
+      applyTransform();
+      if (semanticZoomEnabled) scheduleRender(); // scale changed -> re-evaluate tier visibility (no-op cost otherwise)
+    });
+  }, { passive: false });
+
+
+  // ---------- selection: ancestor/descendant highlight ----------
+  let selectedId = null;
+  let hoveredId = null;
+  let compareIds = null; // [idA, idB] while in two-language compare mode, else null
+  function ancestorsOf(id, acc) {
+    acc = acc || new Set();
+    const d = byId[id]; if (!d) return acc;
+    (d.influenced_by || []).forEach(({ id: p }) => { if (!acc.has(p)) { acc.add(p); ancestorsOf(p, acc); } });
+    return acc;
+  }
+  function descendantsOf(id, acc) {
+    acc = acc || new Set();
+    if (!byId[id]) return acc;
+    (influencedIds[id] || []).forEach(c => { if (!acc.has(c)) { acc.add(c); descendantsOf(c, acc); } });
+    return acc;
+  }
+
+  function selectNode(id) {
+    compareIds = null;
+    selectedId = (selectedId === id) ? null : id;
+    render();
+    if (selectedId) showDetail(byId[selectedId]); else closeDetailPanel();
+  }
+  canvas.addEventListener('click', () => {
+    if (dragMoved) return; // this click just ended a drag; don't clear the highlight
+    compareIds = null; selectedId = null; render(); closeDetailPanel();
+  });
+  document.getElementById('closeDetail').onclick = (e) => { e.stopPropagation(); compareIds = null; selectedId = null; render(); closeDetailPanel(); };
+
+  function showDetail(d) {
+    document.getElementById('detail').classList.add('open');
+    document.getElementById('d-name').textContent = displayName(d);
+    document.getElementById('d-meta').textContent = currentLang === 'en'
+      ? `${d.year} / ${(d.designers||[]).join(', ')} / ${d.paradigms.join(', ')}`
+      : `${d.year}年 / ${(d.designers||[]).join('、')} / ${d.paradigms.map(paradigmLabel).join(', ')}`;
+    document.getElementById('d-problem').textContent = (currentLang === 'en' && d.problem_en) ? d.problem_en : d.problem;
+    const summaryText = (currentLang === 'en' && d.summary_en) ? d.summary_en : d.summary;
+    document.getElementById('d-summary').textContent = summaryText + ` (${UI_I18N[currentLang].statusPrefix}: ${statusLabel(d.status)})`;
+    const link = document.getElementById('d-link');
+    link.href = `lang.html?id=${encodeURIComponent(d.id)}`;
+    link.dataset.id = d.id;
+  }
+  function closeDetailPanel() { document.getElementById('detail').classList.remove('open'); }
+
+  // ---------- filters ----------
+  // activeFamilies/activeParadigms/activeStatuses are declared up by the layout
+  // pass (computeBandLayout() needs them before any of this UI exists); this
+  // section just builds the checkboxes and wires them up.
+
+  const familyFiltersEl = document.getElementById('familyFilters');
+  familyFiltersEl.classList.add('filter-list');
+  FAMILY_ORDER.forEach(fam => {
+    const label = document.createElement('label');
+    label.style.borderLeftColor = FAMILY_COLOR[fam];
+    label.innerHTML = `<input type="checkbox" checked data-family="${fam}">
+      <span class="swatch" style="background:${FAMILY_COLOR[fam]}"></span>
+      <span class="filter-label-text" data-family-label="${fam}">${FAMILY_LABEL[fam]}</span>`;
+    familyFiltersEl.appendChild(label);
+    label.querySelector('input').addEventListener('change', (e) => {
+      if (e.target.checked) activeFamilies.add(fam); else activeFamilies.delete(fam);
+      relayout(); render();
+    });
+  });
+
+  const paradigmFiltersEl = document.getElementById('paradigmFilters');
+  paradigmFiltersEl.classList.add('filter-list');
+  PARADIGMS.forEach(p => {
+    const label = document.createElement('label');
+    label.innerHTML = `<input type="checkbox" checked data-paradigm="${p}"> <span data-paradigm-label="${p}">${paradigmLabel(p)}</span>`;
+    paradigmFiltersEl.appendChild(label);
+    label.querySelector('input').addEventListener('change', (e) => {
+      if (e.target.checked) activeParadigms.add(p); else activeParadigms.delete(p);
+      relayout(); render();
+    });
+  });
+
+  const statusFiltersEl = document.getElementById('statusFilters');
+  statusFiltersEl.classList.add('filter-list');
+  STATUSES.forEach(s => {
+    const label = document.createElement('label');
+    label.innerHTML = `<input type="checkbox" checked data-status="${s}"> <span data-status-label="${s}">${statusLabel(s)}</span>`;
+    statusFiltersEl.appendChild(label);
+    label.querySelector('input').addEventListener('change', (e) => {
+      if (e.target.checked) activeStatuses.add(s); else activeStatuses.delete(s);
+      relayout(); render();
+    });
+  });
+
+  const wikiFiltersEl = document.getElementById('wikiFilters');
+  wikiFiltersEl.classList.add('filter-list');
+  WIKI_CATEGORIES.forEach(c => {
+    const label = document.createElement('label');
+    label.innerHTML = `<input type="checkbox" checked data-wiki="${c}"> <span data-wiki-label="${c}">${wikiCategoryLabel(c)}</span>`;
+    wikiFiltersEl.appendChild(label);
+    label.querySelector('input').addEventListener('change', (e) => {
+      if (e.target.checked) activeWikiCategories.add(c); else activeWikiCategories.delete(c);
+      relayout(); render();
+    });
+  });
+
+  document.querySelectorAll('[data-action]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const action = btn.dataset.action;
+      if (action === 'all-family') { activeFamilies.clear(); FAMILY_ORDER.forEach(f=>activeFamilies.add(f)); }
+      if (action === 'none-family') { activeFamilies.clear(); }
+      if (action === 'all-paradigm') { activeParadigms.clear(); PARADIGMS.forEach(p=>activeParadigms.add(p)); }
+      if (action === 'none-paradigm') { activeParadigms.clear(); }
+      if (action === 'all-status') { activeStatuses.clear(); STATUSES.forEach(s=>activeStatuses.add(s)); }
+      if (action === 'none-status') { activeStatuses.clear(); }
+      if (action === 'all-wiki') { activeWikiCategories.clear(); WIKI_CATEGORIES.forEach(c=>activeWikiCategories.add(c)); }
+      if (action === 'none-wiki') { activeWikiCategories.clear(); }
+      document.querySelectorAll('#familyFilters input').forEach(i => i.checked = activeFamilies.has(i.dataset.family));
+      document.querySelectorAll('#paradigmFilters input').forEach(i => i.checked = activeParadigms.has(i.dataset.paradigm));
+      document.querySelectorAll('#statusFilters input').forEach(i => i.checked = activeStatuses.has(i.dataset.status));
+      document.querySelectorAll('#wikiFilters input').forEach(i => i.checked = activeWikiCategories.has(i.dataset.wiki));
+      relayout(); render();
+    });
+  });
+
+  // semantic zoom: tier-2 (minor) nodes only appear once zoomed in well past the
+  // initial fit-to-height view. Expressed relative to minScale (the fit-to-height
+  // scale set in fitInitial()), not an absolute number, so it behaves the same
+  // regardless of window size.
+  const TIER2_REVEAL_ZOOM_FACTOR = 2.5;
+  let yearCutoff = Infinity; // set to yearMax once the timeline slider initializes
+  let semanticZoomEnabled = false; // off by default: show all languages up front until re-enabled
+  const semanticZoomToggle = document.getElementById('semanticZoomToggle');
+  semanticZoomToggle.checked = semanticZoomEnabled;
+  semanticZoomToggle.addEventListener('change', () => {
+    semanticZoomEnabled = semanticZoomToggle.checked;
+    scheduleRender();
+  });
+  // クリック/ホバー時にどちら向きの系譜をハイライトするか。既定は祖先(影響を受けた元)。
+  let highlightMode = 'ancestors';
+  const highlightModeSelect = document.getElementById('highlightModeSelect');
+  highlightModeSelect.value = highlightMode;
+  highlightModeSelect.addEventListener('change', () => {
+    highlightMode = highlightModeSelect.value;
+    scheduleRender();
+  });
+  // `highlightSet` (the selected/hovered node plus its ancestors & descendants) is
+  // exempt from the tier gate — otherwise semantic zoom would hide half of a
+  // highlighted lineage while zoomed out, which defeats the point of highlighting it.
+  function passesFilter(d, highlightSet) {
+    if (!activeFamilies.has(d.family)) return false;
+    if (!d.paradigms.some(p => activeParadigms.has(p))) return false;
+    if (!activeStatuses.has(d.status)) return false;
+    if (!wikiVisible(d)) return false;
+    if (d.year > yearCutoff) return false;
+    const tierExempt = d.id === selectedId || (highlightSet && highlightSet.has(d.id));
+    if (semanticZoomEnabled && d.__tier === 2 && scale < minScale * TIER2_REVEAL_ZOOM_FACTOR && !tierExempt) return false;
+    return true;
+  }
+
+  const visibleCountEl = document.getElementById('visibleCount');
+  function updateVisibleCount(shown) {
+    const total = DATA.length;
+    visibleCountEl.textContent = currentLang === 'ja'
+      ? `${shown} / ${total} 件表示中`
+      : `${shown} / ${total} shown`;
+  }
+
+  let lastSelectedForR = null;
+  function render() {
+    // self-healing: if the node under `hoveredId` just became invisible/unhoverable
+    // (passesFilter went false, e.g. semantic zoom kicked in mid-zoom while the
+    // cursor sat still over it), the browser never fires mouseleave for it, and
+    // hoveredId would otherwise stay stuck forever, permanently dimming everything
+    // else. Pass null for highlightSet so this check can't exempt the node via
+    // its own lineage.
+    if (hoveredId && !passesFilter(byId[hoveredId], null)) hoveredId = null;
+    let highlightSet;
+    if (compareIds) {
+      const [idA, idB] = compareIds;
+      // show each side's full ancestry so shared roots visually converge; not
+      // just the intersection, which would drop lineage unique to one side
+      highlightSet = new Set([idA, idB, ...ancestorsOf(idA), ...ancestorsOf(idB)]);
+    } else {
+      // selectedId wins once something is clicked: a pinned highlight shouldn't
+      // change just because the cursor happens to pass over another node
+      const activeId = selectedId || hoveredId;
+      let related;
+      if (highlightMode === 'descendants') related = descendantsOf(activeId);
+      else if (highlightMode === 'both') related = new Set([...ancestorsOf(activeId), ...descendantsOf(activeId)]);
+      else related = ancestorsOf(activeId);
+      highlightSet = activeId ? new Set([activeId, ...related]) : null;
+    }
+
+    // radius only ever differs for the selected node, so only touch the two
+    // nodes whose selection state actually changed instead of all 300+ every frame
+    if (selectedId !== lastSelectedForR) {
+      if (lastSelectedForR && nodeCircleElems[lastSelectedForR]) nodeCircleElems[lastSelectedForR].setAttribute('r', 5);
+      if (selectedId && nodeCircleElems[selectedId]) nodeCircleElems[selectedId].setAttribute('r', 7);
+      lastSelectedForR = selectedId;
+    }
+
+    let visibleCount = 0;
+    DATA.forEach(d => {
+      const g = nodeElems[d.id];
+      const visible = passesFilter(d, highlightSet);
+      let opacity = 1;
+      if (!visible) opacity = 0; // filtered out entirely (vs. highlight-dimmed below) — fully hidden, not faded
+      else if (highlightSet && !highlightSet.has(d.id)) opacity = 0.12;
+      // count only nodes actually emphasized right now (opacity 1): the filtered
+      // set normally, but narrowed down to just the highlighted lineage while
+      // one is active, so the readout answers "how many am I looking at" either way.
+      if (opacity === 1) visibleCount++;
+      g.style.opacity = opacity;
+      g.style.pointerEvents = visible ? '' : 'none';
+    });
+    updateVisibleCount(visibleCount);
+
+    edgeElems.forEach(edge => {
+      const from = edge.dataset.from, to = edge.dataset.to;
+      const baseWidth = parseFloat(edge.dataset.baseWidth) || 1;
+      const baseOpacity = parseFloat(edge.dataset.baseOpacity);
+      const fromD = byId[from], toD = byId[to];
+      const visible = passesFilter(fromD, highlightSet) && passesFilter(toD, highlightSet);
+      let opacity = isNaN(baseOpacity) ? 0.35 : baseOpacity, stroke = 'var(--edge-color)', width = baseWidth;
+      if (!visible) { opacity = 0; } // endpoint filtered out — fully hidden, not faded
+      else if (highlightSet) {
+        if (highlightSet.has(from) && highlightSet.has(to)) { opacity = 0.9; stroke = 'var(--edge-highlight)'; width = baseWidth + 0.6; }
+        else opacity = 0.03;
+      }
+      edge.style.opacity = opacity;
+      edge.setAttribute('stroke', stroke);
+      edge.setAttribute('stroke-width', width);
+    });
+  }
+  let hoverRenderRaf = null;
+  function scheduleRender() {
+    if (hoverRenderRaf) return;
+    hoverRenderRaf = requestAnimationFrame(() => { hoverRenderRaf = null; render(); });
+  }
+  render();
+  drawMinimap(); // uses passesFilter(), so must run after yearCutoff/selectedId/etc. above are initialized
+
+  // ---------- timeline slider (history playback) ----------
+  const dataYearMin = Math.min(...DATA.map(d => d.year));
+  const dataYearMax = Math.max(...DATA.map(d => d.year));
+  const timelineSlider = document.getElementById('timelineSlider');
+  const timelineYearEl = document.getElementById('timelineYear');
+  const timelinePlayBtn = document.getElementById('timelinePlay');
+  const timelineResetBtn = document.getElementById('timelineReset');
+  timelineSlider.min = dataYearMin;
+  timelineSlider.max = dataYearMax;
+  timelineSlider.value = dataYearMax;
+  yearCutoff = dataYearMax;
+  function updateTimelineUI() {
+    const atEnd = yearCutoff >= dataYearMax;
+    timelineYearEl.textContent = atEnd ? UI_I18N[currentLang].timelineAll : String(yearCutoff);
+    timelineResetBtn.classList.toggle('hidden', atEnd);
+  }
+  updateTimelineUI();
+  timelineSlider.addEventListener('input', () => {
+    stopTimelinePlay();
+    yearCutoff = parseInt(timelineSlider.value, 10);
+    updateTimelineUI();
+    scheduleRender();
+  });
+  timelineResetBtn.addEventListener('click', () => {
+    stopTimelinePlay();
+    yearCutoff = dataYearMax;
+    timelineSlider.value = dataYearMax;
+    updateTimelineUI();
+    scheduleRender();
+  });
+  let timelinePlayInterval = null;
+  function stopTimelinePlay() {
+    if (!timelinePlayInterval) return;
+    clearInterval(timelinePlayInterval);
+    timelinePlayInterval = null;
+    timelinePlayBtn.textContent = '▶';
+    timelinePlayBtn.title = UI_I18N[currentLang].timelinePlayTitle;
+  }
+  timelinePlayBtn.addEventListener('click', () => {
+    if (timelinePlayInterval) { stopTimelinePlay(); return; }
+    if (yearCutoff >= dataYearMax) yearCutoff = dataYearMin;
+    timelinePlayBtn.textContent = '■';
+    timelinePlayBtn.title = UI_I18N[currentLang].timelinePauseTitle;
+    timelinePlayInterval = setInterval(() => {
+      yearCutoff += 1;
+      if (yearCutoff >= dataYearMax) { yearCutoff = dataYearMax; stopTimelinePlay(); }
+      timelineSlider.value = yearCutoff;
+      updateTimelineUI();
+      render();
+    }, 150);
+  });
+
+  // ---------- deep link (?focus=id) ----------
+  (function applyFocusParam(){
+    const params = new URLSearchParams(location.search);
+    const focusId = params.get('focus');
+    if (focusId && byId[focusId]) {
+      selectedId = focusId;
+      render();
+      showDetail(byId[focusId]);
+      focusOnNode(focusId);
+    }
+  })();
+
+  // ---------- search (also handles "A vs B" two-language compare) ----------
+  const searchInput = document.getElementById('search');
+  const searchResults = document.getElementById('searchResults');
+  function findByNameOrId(q) {
+    const qq = q.trim().toLowerCase();
+    return DATA.find(d => d.name.toLowerCase() === qq || d.id === qq);
+  }
+  function fitToIds(ids) {
+    const nodes = ids.map(id => byId[id]).filter(Boolean);
+    if (!nodes.length) return;
+    const xs = nodes.map(d => d.__x), ys = nodes.map(d => d.__y);
+    const pad = 90;
+    const minX = Math.min(...xs) - pad, maxX = Math.max(...xs) + pad;
+    const minY = Math.min(...ys) - pad, maxY = Math.max(...ys) + pad;
+    const rect = canvas.getBoundingClientRect();
+    const availW = rect.width || 1000, availH = rect.height || 700;
+    const spanX = Math.max(1, maxX - minX), spanY = Math.max(1, maxY - minY);
+    const newScale = Math.max(minScale, Math.min(8, Math.min(availW / spanX, availH / spanY)));
+    const targetTx = availW / 2 - (minX + maxX) / 2 * newScale;
+    const targetTy = availH / 2 - (minY + maxY) / 2 * newScale;
+    animateTransform(targetTx, targetTy, newScale);
+  }
+  function startCompare(idA, idB) {
+    compareIds = [idA, idB];
+    selectedId = null; hoveredId = null;
+    closeDetailPanel();
+    render();
+    fitToIds([idA, idB, ...ancestorsOf(idA), ...ancestorsOf(idB)]);
+  }
+  function clearCompare() {
+    if (!compareIds) return;
+    compareIds = null;
+    render();
+  }
+  searchInput.addEventListener('input', () => {
+    const raw = searchInput.value.trim();
+    searchResults.innerHTML = '';
+    if (!raw) { clearCompare(); return; }
+    const vsMatch = raw.match(/^(.+?)\s+vs\.?\s+(.+)$/i);
+    if (vsMatch) {
+      const dA = findByNameOrId(vsMatch[1]);
+      const dB = findByNameOrId(vsMatch[2]);
+      if (dA && dB && dA.id !== dB.id) {
+        const div = document.createElement('div');
+        div.className = 'result-item';
+        div.textContent = currentLang === 'en'
+          ? `Compare lineages: ${dA.name} vs ${dB.name}`
+          : `${dA.name} と ${dB.name} の系譜を比較表示`;
+        div.addEventListener('click', () => startCompare(dA.id, dB.id));
+        searchResults.appendChild(div);
+      } else {
+        const div = document.createElement('div');
+        div.className = 'result-item';
+        div.textContent = currentLang === 'en'
+          ? 'Both language names must match exactly (e.g. "Python vs Ruby")'
+          : '両方の言語名を正確に入力してください(例: Python vs Ruby)';
+        div.style.cursor = 'default';
+        div.style.opacity = '0.6';
+        searchResults.appendChild(div);
+      }
+      return;
+    }
+    clearCompare();
+    const q = raw.toLowerCase();
+    // Match against name/id first (no snippet needed); fall back to designers,
+    // then summary/problem text (ja+en) so a search also finds hits buried in
+    // the descriptive body copy, showing a short snippet for context. Scores
+    // every match with a "kind" so name hits can be sorted ahead of body-text
+    // hits — scanning all of DATA first (599 rows, trivial) rather than
+    // stopping at 20 as soon as found, since a later name match must still
+    // outrank an earlier body match once sorted.
+    function matchInfo(d) {
+      const nameHit = [d.name, d.id, d.name_en].some(f => f && f.toLowerCase().includes(q));
+      if (nameHit) return { hit: true, kind: 'name', snippet: null };
+      const designersText = Array.isArray(d.designers) ? d.designers.join(', ') : '';
+      if (designersText.toLowerCase().includes(q)) return { hit: true, kind: 'body', snippet: null };
+      const bodyFields = [d.summary, d.summary_en, d.problem, d.problem_en];
+      for (const f of bodyFields) {
+        if (!f) continue;
+        const idx = f.toLowerCase().indexOf(q);
+        if (idx !== -1) {
+          const start = Math.max(0, idx - 15);
+          const end = Math.min(f.length, idx + q.length + 25);
+          let snippet = f.slice(start, end);
+          if (start > 0) snippet = '…' + snippet;
+          if (end < f.length) snippet = snippet + '…';
+          return { hit: true, kind: 'body', snippet };
+        }
+      }
+      return { hit: false };
+    }
+    const allMatches = [];
+    for (const d of DATA) {
+      const m = matchInfo(d);
+      if (m.hit) allMatches.push({ d, kind: m.kind, snippet: m.snippet });
+    }
+    allMatches.sort((a, b) => (a.kind === b.kind) ? 0 : (a.kind === 'name' ? -1 : 1));
+    const results = allMatches.slice(0, 20);
+    results.forEach(({ d, snippet }) => {
+      const div = document.createElement('div');
+      div.className = 'result-item';
+      const nameLine = document.createElement('div');
+      nameLine.textContent = `${d.name} (${d.year})`;
+      div.appendChild(nameLine);
+      if (snippet) {
+        const snippetLine = document.createElement('div');
+        snippetLine.className = 'search-snippet';
+        snippetLine.textContent = snippet;
+        div.appendChild(snippetLine);
+      }
+      div.addEventListener('click', () => {
+        selectedId = d.id; render(); showDetail(d);
+        focusOnNode(d.id);
+      });
+      searchResults.appendChild(div);
+    });
+  });
+
+  window.addEventListener('resize', updateViewBox);
+
+  // ---------- article modal (renders lang/<id>.md inline, no page navigation) ----------
+  function escapeHtmlModal(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+  function inlineMdModal(s) {
+    s = escapeHtmlModal(s);
+    s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    s = s.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (m, alt, url) => {
+      return `<img src="${url}" alt="${alt}" loading="lazy">`;
+    });
+    s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (m, text, url) => {
+      if (/\.md$/i.test(url) && !/^https?:\/\//i.test(url)) {
+        const targetId = url.replace(/\.md$/i, '');
+        return `<a href="#" data-nav-id="${targetId}">${text}</a>`;
+      }
+      return `<a href="${url}" target="_blank" rel="noopener">${text}</a>`;
+    });
+    return s;
+  }
+  function renderArticleMarkdown(md) {
+    const lines = md.replace(/\r\n/g, '\n').split('\n');
+    let html = '', inList = false, buf = [], inCode = false, codeBuf = [];
+    function flush() { if (buf.length) { html += '<p>' + inlineMdModal(buf.join(' ')) + '</p>'; buf = []; } }
+    function closeList() { if (inList) { html += '</ul>'; inList = false; } }
+    function flushCode() {
+      html += '<pre><code>' + escapeHtmlModal(codeBuf.join('\n')) + '</code></pre>';
+      codeBuf = []; inCode = false;
+    }
+    for (const raw of lines) {
+      const line = raw.trimEnd();
+      if (inCode) {
+        if (line.trim().startsWith('```')) { flushCode(); continue; }
+        codeBuf.push(raw);
+        continue;
+      }
+      if (line.trim().startsWith('```')) { flush(); closeList(); inCode = true; continue; }
+      if (line.trim() === '') { flush(); closeList(); continue; }
+      if (line.startsWith('# ')) { flush(); closeList(); html += '<h1>' + inlineMdModal(line.slice(2)) + '</h1>'; continue; }
+      if (line.startsWith('## ')) { flush(); closeList(); html += '<h2>' + inlineMdModal(line.slice(3)) + '</h2>'; continue; }
+      if (line.startsWith('- ')) {
+        flush();
+        if (!inList) { html += '<ul>'; inList = true; }
+        html += '<li>' + inlineMdModal(line.slice(2)) + '</li>';
+        continue;
+      }
+      closeList();
+      buf.push(line);
+    }
+    if (inCode) flushCode();
+    flush(); closeList();
+    return html;
+  }
+  const articleModalOverlay = document.getElementById('articleModalOverlay');
+  const articleContent = document.getElementById('articleContent');
+  const articleBadges = document.getElementById('articleBadges');
+  const articleLoading = document.getElementById('articleLoading');
+  function openArticleModal(id) {
+    articleModalOverlay.classList.add('open');
+    articleContent.innerHTML = '';
+    articleBadges.innerHTML = '';
+    articleLoading.style.display = 'block';
+    articleModalOverlay.scrollTop = 0;
+    document.getElementById('articleModal').scrollTop = 0;
+    const langDir = currentLang === 'en' ? 'en' : 'jp';
+    const primaryPath = `lang/${langDir}/${id}.md`;
+    const fallbackPath = `lang/jp/${id}.md`;
+    fetch(primaryPath)
+      .then(r => {
+        if (r.ok) return r.text();
+        if (primaryPath === fallbackPath) return Promise.reject(new Error('not found'));
+        return fetch(fallbackPath).then(r2 => r2.ok ? r2.text() : Promise.reject(new Error('not found')));
+      })
+      .then(md => {
+        articleLoading.style.display = 'none';
+        articleContent.innerHTML = renderArticleMarkdown(md);
+        const meta = byId[id];
+        if (meta) {
+          articleBadges.innerHTML = [
+            `<span class="badge">${meta.year}${currentLang === 'en' ? '' : '年'}</span>`,
+            ...meta.paradigms.map(p => `<span class="badge">${paradigmLabel(p)}</span>`),
+            `<span class="badge">${meta.family}</span>`,
+            `<span class="badge">${statusLabel(meta.status)}</span>`
+          ].join('');
+        }
+        articleContent.querySelectorAll('a[data-nav-id]').forEach(a => {
+          a.addEventListener('click', (e) => {
+            e.preventDefault();
+            openArticleModal(a.dataset.navId);
+          });
+        });
+      })
+      .catch(() => {
+        articleLoading.style.display = 'none';
+        articleContent.innerHTML = '<p>' + UI_I18N[currentLang].articleLoadError + '</p>';
+      });
+  }
+  function closeArticleModal() { articleModalOverlay.classList.remove('open'); }
+  document.getElementById('d-link').addEventListener('click', (e) => {
+    e.preventDefault();
+    openArticleModal(e.currentTarget.dataset.id);
+  });
+  document.getElementById('closeArticleModal').addEventListener('click', closeArticleModal);
+  articleModalOverlay.addEventListener('click', (e) => {
+    if (e.target === articleModalOverlay) closeArticleModal();
+  });
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && articleModalOverlay.classList.contains('open')) closeArticleModal();
+  });
+
+  // ---------- ja/en UI toggle (UI labels only; article body text stays as authored) ----------
+  function applyLanguage(lang) {
+    currentLang = lang;
+    localStorage.setItem('langtree-ui-lang', lang);
+    document.documentElement.lang = lang;
+    document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === lang));
+
+    const dict = UI_I18N[lang];
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const key = el.dataset.i18n;
+      if (dict[key] !== undefined) el.innerHTML = dict[key];
+    });
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+      const key = el.dataset.i18nPlaceholder;
+      if (dict[key] !== undefined) el.placeholder = dict[key];
+    });
+    document.querySelectorAll('[data-i18n-title]').forEach(el => {
+      const key = el.dataset.i18nTitle;
+      if (dict[key] !== undefined) el.title = dict[key];
+    });
+    if (timelinePlayInterval) timelinePlayBtn.title = dict.timelinePauseTitle;
+    updateTimelineUI();
+
+    const famDict = FAMILY_LABEL_I18N[lang];
+    document.querySelectorAll('[data-family-label]').forEach(el => {
+      el.textContent = famDict[el.dataset.familyLabel];
+    });
+    document.querySelectorAll('[data-paradigm-label]').forEach(el => {
+      el.textContent = paradigmLabel(el.dataset.paradigmLabel);
+    });
+    document.querySelectorAll('[data-status-label]').forEach(el => {
+      el.textContent = statusLabel(el.dataset.statusLabel);
+    });
+    document.querySelectorAll('[data-wiki-label]').forEach(el => {
+      el.textContent = wikiCategoryLabel(el.dataset.wikiLabel);
+    });
+    bandLabelElems.forEach((label, i) => {
+      label.textContent = famDict[label.dataset.family];
+      fitLabelBg(label, bandLabelBgElems[i]);
+    });
+    DATA.forEach(d => {
+      const { text, bg } = nodeLabelElems[d.id];
+      text.textContent = displayName(d);
+      fitLabelBg(text, bg);
+    });
+    if (selectedId) showDetail(byId[selectedId]);
+    applyTransform();
+    render(); // re-render so the visible-count readout switches language too
+  }
+  document.querySelectorAll('.lang-btn').forEach(btn => {
+    btn.addEventListener('click', () => applyLanguage(btn.dataset.lang));
+  });
+  applyLanguage(currentLang);
+})();
+</script>
+</body>
+</html>

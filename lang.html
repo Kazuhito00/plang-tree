@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>言語詳細 | プログラミング言語 系統図</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root {
+    --bg: #f7f5f0; --panel-bg: #ffffff; --text: #1f2430; --text-dim: #5a6072;
+    --border: #d8d4c8; --accent: #2E86AB;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #14161c; --panel-bg: #1d2029; --text: #e8e6e0; --text-dim: #9a9fae; --border: #333747;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14161c; --panel-bg: #1d2029; --text: #e8e6e0; --text-dim: #9a9fae; --border: #333747;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: "Hiragino Sans", "Yu Gothic", "Segoe UI", system-ui, sans-serif;
+    line-height: 1.75;
+  }
+  #topbar {
+    position: sticky; top: 0; background: var(--panel-bg); border-bottom: 1px solid var(--border);
+    padding: 10px 20px; display: flex; align-items: center; gap: 16px; z-index: 10;
+  }
+  #topbar a { color: var(--accent); text-decoration: none; font-size: 13px; }
+  #topbar a:hover { text-decoration: underline; }
+  #wrap { max-width: 720px; margin: 0 auto; padding: 24px 20px 80px; }
+  #badges { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 24px; }
+  .badge {
+    font-size: 11px; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--border);
+    color: var(--text-dim); background: var(--bg);
+  }
+  #content h1 { font-size: 26px; margin: 0 0 4px; }
+  #content h2 { font-size: 16px; margin: 28px 0 8px; padding-bottom: 4px; border-bottom: 1px solid var(--border); }
+  #content ul { padding-left: 22px; }
+  #content li { margin: 4px 0; }
+  #content p { margin: 8px 0; }
+  #content a { color: var(--accent); }
+  #content > ul:first-of-type { list-style: none; padding-left: 0; color: var(--text-dim); font-size: 13px; }
+  #content pre {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+    padding: 14px 16px; overflow-x: auto; margin: 10px 0 16px;
+  }
+  #content pre code { font-family: "SFMono-Regular", Consolas, Menlo, monospace; font-size: 13px; white-space: pre; }
+  #content img { max-width: 100%; height: auto; border: 1px solid var(--border); border-radius: 4px; display: block; margin: 10px 0; }
+  #notfound { display: none; color: var(--text-dim); }
+  #loading { color: var(--text-dim); font-size: 13px; }
+  #langToggle { display: flex; gap: 4px; margin-left: auto; }
+  #langToggle button {
+    font-size: 11px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--border);
+    background: var(--bg); color: var(--text-dim); cursor: pointer;
+  }
+  #langToggle button.active { background: var(--accent); color: white; border-color: var(--accent); }
+</style>
+</head>
+<body>
+<div id="topbar">
+  <a href="index.html" id="backLink">← 系統図に戻る</a>
+  <div id="langToggle">
+    <button data-lang="ja">日本語</button>
+    <button data-lang="en">EN</button>
+  </div>
+</div>
+<div id="wrap">
+  <div id="loading">読み込み中…</div>
+  <div id="notfound">
+    <p>指定された言語が見つかりませんでした。<a href="index.html">系統図トップに戻る</a></p>
+  </div>
+  <div id="badges"></div>
+  <div id="content"></div>
+</div>
+
+<script>
+(function(){
+  const params = new URLSearchParams(location.search);
+  const id = params.get('id');
+  const loadingEl = document.getElementById('loading');
+  const notfoundEl = document.getElementById('notfound');
+  const contentEl = document.getElementById('content');
+  const badgesEl = document.getElementById('badges');
+  const backLink = document.getElementById('backLink');
+
+  if (!id) {
+    loadingEl.style.display = 'none';
+    notfoundEl.style.display = 'block';
+    return;
+  }
+  backLink.href = `index.html?focus=${encodeURIComponent(id)}`;
+
+  const currentLang = localStorage.getItem('langtree-ui-lang') || 'ja';
+  document.querySelectorAll('#langToggle button').forEach(b => {
+    b.classList.toggle('active', b.dataset.lang === currentLang);
+    b.addEventListener('click', () => {
+      localStorage.setItem('langtree-ui-lang', b.dataset.lang);
+      location.reload();
+    });
+  });
+
+  const PARADIGM_LABEL_JA = {
+    array:"配列指向", concatenative:"連結型", concurrent:"並行", dataflow:"データフロー",
+    declarative:"宣言型", educational:"教育用", esoteric:"難解", "event-driven":"イベント駆動",
+    functional:"関数型", generic:"ジェネリック", logic:"論理型", macro:"マクロ",
+    "object-oriented":"オブジェクト指向", "pattern-matching":"パターンマッチング", procedural:"手続き型",
+    "protocol-oriented":"プロトコル指向", query:"クエリ", "rule-based":"ルールベース", scripting:"スクリプト",
+    "stack-based":"スタックベース", symbolic:"記号処理", systems:"システム記述", visual:"ビジュアル"
+  };
+  const STATUS_LABEL_JA = {
+    active:"現役", educational:"教育用", esoteric:"難解言語", historical:"歴史的", legacy:"レガシー", niche:"ニッチ"
+  };
+  function paradigmLabel(p) { return currentLang === 'ja' && PARADIGM_LABEL_JA[p] ? `${p}(${PARADIGM_LABEL_JA[p]})` : p; }
+  function statusLabel(s) { return currentLang === 'ja' && STATUS_LABEL_JA[s] ? `${s}(${STATUS_LABEL_JA[s]})` : s; }
+
+  // ---- minimal markdown renderer (headings, lists, paragraphs, bold, links) ----
+  function escapeHtml(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+  function inlineMd(s) {
+    s = escapeHtml(s);
+    s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    s = s.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (m, alt, url) => {
+      return `<img src="${url}" alt="${alt}" loading="lazy">`;
+    });
+    s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (m, text, url) => {
+      if (/\.md$/i.test(url) && !/^https?:\/\//i.test(url)) {
+        const targetId = url.replace(/\.md$/i, '');
+        return `<a href="lang.html?id=${encodeURIComponent(targetId)}">${text}</a>`;
+      }
+      return `<a href="${url}" target="_blank" rel="noopener">${text}</a>`;
+    });
+    return s;
+  }
+  function renderMarkdown(md) {
+    const lines = md.replace(/\r\n/g, '\n').split('\n');
+    let html = '', inList = false, buf = [], inCode = false, codeBuf = [];
+    function flush() { if (buf.length) { html += '<p>' + inlineMd(buf.join(' ')) + '</p>'; buf = []; } }
+    function closeList() { if (inList) { html += '</ul>'; inList = false; } }
+    function flushCode() {
+      html += '<pre><code>' + escapeHtml(codeBuf.join('\n')) + '</code></pre>';
+      codeBuf = []; inCode = false;
+    }
+    for (const raw of lines) {
+      const line = raw.trimEnd();
+      if (inCode) {
+        if (line.trim().startsWith('```')) { flushCode(); continue; }
+        codeBuf.push(raw);
+        continue;
+      }
+      if (line.trim().startsWith('```')) { flush(); closeList(); inCode = true; continue; }
+      if (line.trim() === '') { flush(); closeList(); continue; }
+      if (line.startsWith('# ')) { flush(); closeList(); html += '<h1>' + inlineMd(line.slice(2)) + '</h1>'; continue; }
+      if (line.startsWith('## ')) { flush(); closeList(); html += '<h2>' + inlineMd(line.slice(3)) + '</h2>'; continue; }
+      if (line.startsWith('- ')) {
+        flush();
+        if (!inList) { html += '<ul>'; inList = true; }
+        html += '<li>' + inlineMd(line.slice(2)) + '</li>';
+        continue;
+      }
+      closeList();
+      buf.push(line);
+    }
+    if (inCode) flushCode();
+    flush(); closeList();
+    return html;
+  }
+
+  const langDir = currentLang === 'en' ? 'en' : 'jp';
+  const primaryPath = `lang/${langDir}/${id}.md`;
+  const fallbackPath = `lang/jp/${id}.md`;
+  Promise.all([
+    fetch(primaryPath).then(r => {
+      if (r.ok) return r.text();
+      if (primaryPath === fallbackPath) return Promise.reject(new Error('md not found'));
+      return fetch(fallbackPath).then(r2 => r2.ok ? r2.text() : Promise.reject(new Error('md not found')));
+    }),
+    fetch('data/languages.json').then(r => r.json())
+  ]).then(([md, data]) => {
+    loadingEl.style.display = 'none';
+    contentEl.innerHTML = renderMarkdown(md);
+    const meta = data.find(d => d.id === id);
+    if (meta) {
+      document.title = `${meta.name} | プログラミング言語 系統図`;
+      badgesEl.innerHTML = [
+        `<span class="badge">${meta.year}${currentLang === 'en' ? '' : '年'}</span>`,
+        ...meta.paradigms.map(p => `<span class="badge">${paradigmLabel(p)}</span>`),
+        `<span class="badge">${meta.family}</span>`,
+        `<span class="badge">${statusLabel(meta.status)}</span>`
+      ].join('');
+    }
+  }).catch(() => {
+    loadingEl.style.display = 'none';
+    notfoundEl.style.display = 'block';
+  });
+})();
+</script>
+</body>
+</html>

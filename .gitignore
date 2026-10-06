@@ -1,0 +1,5 @@
+# index.html は index.template.html + data/languages.json から生成する(CIでビルド)
+index.html
+_site/
+node_modules/
+.claude/

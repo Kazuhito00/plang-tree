@@ -2,12 +2,11 @@
 
 # plang-tree
 
-プログラミング言語の系統図(約600言語)です。<br>
-言語同士の関係を「系統」「設計への影響」「構文上の影響」「実装・処理系上の関係」の4種類に分けて描画します。
+<img width="95%" alt="image" src="https://github.com/user-attachments/assets/c20c2acb-ffe4-4f08-b5b7-a58e3a2e88fb" />
 
-<!-- TODO: スクリーンショットを assets/screenshot.png に置いて有効化
-<img width="1556" height="811" alt="screenshot" src="assets/screenshot.png" />
--->
+プログラミング言語の系統図(約600言語)です。<br>
+言語同士の関係を「系統」「設計への影響」「構文上の影響」「実装・処理系上の関係」の4種類に分けて描画します。<br>
+個人的勉強メモなので間違いなど含まれる可能性あります。
 
 # Web Demo
 ブラウザ上で系統図を確認できます。

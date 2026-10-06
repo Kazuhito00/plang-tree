@@ -2,12 +2,11 @@
 
 # plang-tree
 
-A family tree of programming languages (about 600 languages).<br>
-Relationships are drawn in four distinct types: lineage, design influence, syntactic influence, and implementation/runtime relation.
+<img width="95%" alt="image" src="https://github.com/user-attachments/assets/c20c2acb-ffe4-4f08-b5b7-a58e3a2e88fb" />
 
-<!-- TODO: add a screenshot at assets/screenshot.png and enable
-<img width="1556" height="811" alt="screenshot" src="assets/screenshot.png" />
--->
+A family tree of programming languages (about 600 languages).<br>
+Relationships are drawn in four distinct types: lineage, design influence, syntactic influence, and implementation/runtime relation.<br>
+This is a personal study note, so it may contain mistakes.
 
 # Web Demo
 The tree can be explored in the browser.
